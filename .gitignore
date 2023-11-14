@@ -1,4 +1,3 @@
 /target
-.env
-
 log/infopanel.log
+.env
