@@ -105,6 +105,17 @@ pub async fn get_event(id: u64) -> Result<Option<Event>, surrealdb::Error> {
     Ok(event)
 }
 
+/// Get all the events in the table sorted by `from_datetime`
+///
+/// Returns a `Vec<Event>` which can be empty.
+/// Can return a `surrealdb::Error`.
+pub async fn get_all_events() -> Result<Vec<Event>, surrealdb::Error> {
+    let mut events: Vec<Event> = DB.select(EVENT_TABLE).await?;
+    events.sort_by_key(|a| a.from_datetime);
+
+    Ok(events)
+}
+
 /// Remove an event from the database by id
 ///
 /// Returns `Some(Event)` if the event with the `id` provided was found and deleted.
