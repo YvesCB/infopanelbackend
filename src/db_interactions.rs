@@ -1,4 +1,4 @@
-use log::warn;
+use log::info;
 use once_cell::sync::Lazy;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
@@ -54,7 +54,7 @@ mod tests {
 /// Uses the namespace `juventus` and the database name `infopanel`.
 pub async fn initiate_db() -> surrealdb::Result<()> {
     DB.connect::<Ws>("localhost:8000").await?;
-    warn!("Connected to DB at localhost:8000");
+    info!("Connected to DB at localhost:8000");
 
     let dbuser = std::env::var("SURREAL_INFO_USER").expect("missing SURREAL_INFO_USER");
     let dbpass = std::env::var("SURREAL_INFO_PASS").expect("missing SURREAL_INFO_PASS");
@@ -64,12 +64,42 @@ pub async fn initiate_db() -> surrealdb::Result<()> {
         password: &dbpass,
     })
     .await?;
-    warn!("Signed into DB");
+    info!("Signed into DB");
 
     DB.use_ns("juventus").use_db("infopanel").await?;
-    warn!("Using ns {} and db {}", "juventus", "infopanel");
+    info!("Using ns {} and db {}", "juventus", "infopanel");
 
     Ok(())
+}
+
+/// Add a list of events to the database
+///
+/// Returns a simple result with no content. If the transaction fails `surrealdb::Error` will be
+/// returned.
+pub async fn create_many_events(events: &Vec<Event>) -> Result<(), surrealdb::Error> {
+    for event in events {
+        let existing_event: Option<Event> = DB.select((EVENT_TABLE, event.event_id)).await?;
+        match existing_event {
+            Some(_) => {}
+            None => {
+                let _created_event: Option<Event> = DB
+                    .create((EVENT_TABLE, event.event_id))
+                    .content(event)
+                    .await?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Delete every event in the database
+///
+/// Returns the deleted events or a `surrealdb::Error`.
+pub async fn purge_events() -> Result<Vec<Event>, surrealdb::Error> {
+    let deleted_events: Vec<Event> = DB.delete(EVENT_TABLE).await?;
+
+    Ok(deleted_events)
 }
 
 /// Create a new event in the database

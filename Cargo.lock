@@ -1539,8 +1539,10 @@ name = "infopanel"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "anyhow",
  "chrono",
  "dotenv",
+ "encoding_rs",
  "log",
  "log4rs",
  "once_cell",

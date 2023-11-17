@@ -15,7 +15,7 @@ appenders:
       roller:
         kind: delete
 root:
-  level: warn
+  level: info
   appenders:
     - my_stdout
     - my_file_logger
