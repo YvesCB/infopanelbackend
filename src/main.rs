@@ -55,12 +55,11 @@ async fn main() -> std::io::Result<()> {
     log4rs::init_file("log_config.yml", Default::default()).unwrap();
     dotenv().ok();
 
-    let today = Local::now().date_naive();
-    let specified_time =
+    let tomorrow = Local::now() + Duration::hours(24);
+    let mut specified_time =
         NaiveTime::parse_from_str(&std::env::var("REFRESH_TIME").unwrap(), "%H:%M").unwrap();
 
-    let mut update_time: NaiveDateTime = today.and_time(specified_time);
-    dbg!(&update_time);
+    let mut update_time: NaiveDateTime = tomorrow.date_naive().and_time(specified_time);
 
     db_interactions::initiate_db()
         .await
@@ -73,12 +72,20 @@ async fn main() -> std::io::Result<()> {
         loop {
             interval_stream.tick().await;
             let now = Local::now();
+            let new_specified_time =
+                NaiveTime::parse_from_str(&std::env::var("REFRESH_TIME").unwrap(), "%H:%M")
+                    .unwrap();
+            if new_specified_time != specified_time {
+                update_time = update_time.date().and_time(specified_time);
+                specified_time = new_specified_time;
+            }
+
             dbg!(&update_time);
 
             if now.naive_local() > update_time {
                 update_db().await;
-                let today = Local::now() + Duration::hours(24);
-                update_time = today.date_naive().and_time(specified_time);
+                let tomorrow = Local::now() + Duration::hours(24);
+                update_time = tomorrow.date_naive().and_time(specified_time);
             }
         }
     });
@@ -86,12 +93,15 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(
-                web::scope("/events")
+                web::scope("api/events")
                     .service(show_events)
-                    .service(event_detail),
+                    .service(filter)
+                    .service(filter_by_time)
+                    .service(event_detail)
+                    .service(delete_event),
             )
             .service(
-                web::scope("/users")
+                web::scope("api/users")
                     .service(show_users)
                     .service(user_detail),
             )
