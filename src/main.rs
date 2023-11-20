@@ -1,54 +1,18 @@
-use std::{path::Path, str::FromStr};
+mod api;
+mod constants;
+mod model;
+mod util;
 
 use actix_web::{web, App, HttpServer};
-use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use csv_parse::CSVParser;
+use chrono::{Duration, Local, NaiveDateTime, NaiveTime};
 use dotenv::dotenv;
-use log::{error, info, warn};
 use log4rs;
 
-mod constants;
-mod csv_parse;
-mod db_interactions;
-mod event_routes;
-mod types;
-mod user_routes;
-
-use event_routes::*;
-use user_routes::*;
-
-async fn update_db() {
-    let mut csvparser = CSVParser::new(
-        "latin1",
-        Path::new("./input_files/Infopanel_new.csv").to_path_buf(),
-    );
-
-    match csvparser.read_file() {
-        Ok(_) => info!("Successfully read csv file"),
-        Err(e) => {
-            error!("Could not read csv file: {}", e);
-            return;
-        }
-    }
-
-    match csvparser.parse_contents() {
-        Ok(_) => info!("Successfully parsed csv file"),
-        Err(e) => {
-            error!("Could not parse csv file: {}", e);
-            return;
-        }
-    }
-
-    if let Some(events) = csvparser.get_events() {
-        if let Ok(purge) = db_interactions::purge_events().await {
-            warn!("Purged {} entries from event db.", purge.len());
-            match db_interactions::create_many_events(events).await {
-                Ok(_) => info!("Successfully created new events"),
-                Err(e) => error!("Could not create new events: {}", e),
-            }
-        }
-    }
-}
+use api::event::{
+    create_new_event, delete_event, event_detail, filter, filter_by_time, show_events, update_db,
+};
+use api::user::{show_users, user_detail};
+use util::*;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -83,7 +47,7 @@ async fn main() -> std::io::Result<()> {
             dbg!(&update_time);
 
             if now.naive_local() > update_time {
-                update_db().await;
+                db_interactions::update_db().await;
                 let tomorrow = Local::now() + Duration::hours(24);
                 update_time = tomorrow.date_naive().and_time(specified_time);
             }
@@ -97,6 +61,8 @@ async fn main() -> std::io::Result<()> {
                     .service(show_events)
                     .service(filter)
                     .service(filter_by_time)
+                    .service(create_new_event)
+                    .service(update_db)
                     .service(event_detail)
                     .service(delete_event),
             )

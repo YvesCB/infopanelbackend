@@ -1,11 +1,14 @@
-use log::info;
+use std::path::Path;
+
+use log::{error, info, warn};
 use once_cell::sync::Lazy;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;
 
 use crate::constants::*;
-use crate::types::*;
+use crate::model::event::*;
+use crate::util::*;
 
 pub static DB: Lazy<Surreal<Client>> = Lazy::new(Surreal::init);
 
@@ -47,6 +50,68 @@ mod tests {
             }
         }
     }
+}
+
+/// Perform a sunc of the database
+pub async fn update_db() -> DBUpdateData {
+    let mut csvparser = csv_parse::CSVParser::new(
+        "latin1",
+        Path::new("./input_files/Infopanel_new.csv").to_path_buf(),
+    );
+
+    match csvparser.read_file() {
+        Ok(_) => info!("Successfully read csv file"),
+        Err(e) => {
+            error!("Could not read csv file: {}", e);
+            return DBUpdateData {
+                deleted_events: 0,
+                answer_string: String::from("Could not read csv file"),
+                sucess: false,
+            };
+        }
+    }
+
+    match csvparser.parse_contents() {
+        Ok(_) => info!("Successfully parsed csv file"),
+        Err(e) => {
+            error!("Could not parse csv file: {}", e);
+            return DBUpdateData {
+                deleted_events: 0,
+                answer_string: String::from("Could not parse csv file"),
+                sucess: false,
+            };
+        }
+    }
+
+    if let Some(events) = csvparser.get_events() {
+        if let Ok(purge) = db_interactions::purge_events().await {
+            warn!("Purged {} entries from event db.", purge.len());
+            match db_interactions::create_many_events(events).await {
+                Ok(_) => {
+                    info!("Successfully created new events");
+                    return DBUpdateData {
+                        deleted_events: purge.len(),
+                        answer_string: String::from("Successfully updated database with new data."),
+                        sucess: true,
+                    };
+                }
+                Err(e) => {
+                    error!("Could not create new events: {}", e);
+                    return DBUpdateData {
+                        deleted_events: purge.len(),
+                        answer_string: String::from("Purged db, but cannot read in new data."),
+                        sucess: false,
+                    };
+                }
+            }
+        }
+    }
+
+    return DBUpdateData {
+        deleted_events: 0,
+        answer_string: String::from("Purged db, but cannot read in new data."),
+        sucess: false,
+    };
 }
 
 /// Initiate the connection to the surrealdb server
@@ -111,15 +176,23 @@ pub async fn create_event(event: Event) -> Result<Option<Event>, surrealdb::Erro
     // we check for existing record like this because calling create on an existing id just throws
     // an error and it makes it harder to distinguish from another type of error.
     let existing_event: Option<Event> = DB.select((EVENT_TABLE, event.event_id)).await?;
+    dbg!(event.event_id);
     match existing_event {
         Some(_) => Ok(None),
         None => {
-            let created_event: Option<Event> = DB
+            let created_event: Result<Option<Event>, surrealdb::Error> = DB
                 .create((EVENT_TABLE, event.event_id))
                 .content(event)
-                .await?;
+                .await;
+            match created_event {
+                Ok(ce) => Ok(ce),
+                Err(e) => {
+                    println!("{:?}", e);
+                    return Err(e);
+                }
+            }
 
-            Ok(created_event)
+            // Ok(created_event)
         }
     }
 }

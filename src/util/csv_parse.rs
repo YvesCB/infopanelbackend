@@ -3,7 +3,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use encoding_rs::Encoding;
 use std::{fs, io::Read, path::PathBuf};
 
-use crate::types::*;
+use crate::model::event::*;
 
 #[derive(Debug)]
 pub struct CSVParser {
