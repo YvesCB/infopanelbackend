@@ -11,6 +11,7 @@ use log4rs;
 use api::event::{
     create_new_event, delete_event, event_detail, filter, filter_by_time, show_events, update_db,
 };
+use api::test::test_header;
 use api::user::{show_users, user_detail};
 use util::*;
 
@@ -71,6 +72,7 @@ async fn main() -> std::io::Result<()> {
                     .service(show_users)
                     .service(user_detail),
             )
+            .service(web::scope("api/test").service(test_header))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
