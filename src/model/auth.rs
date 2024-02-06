@@ -1,49 +1,63 @@
-use actix_web::{
-    dev::Payload, error::ErrorUnauthorized, http::header, web, Error as ActixWebError, FromRequest,
-    HttpRequest,
-};
-use jsonwebtoken::{
-    decode, errors::Error as JwtError, Algorithm, DecodingKey, TokenData, Validation,
-};
-use serde::{Deserialize, Serialize};
 use std::future::{ready, Ready};
 
-#[derive(Serialize, Deserialize)]
-pub struct AuthenticationToken {
-    pub id: usize,
+use actix_web::{
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    Error,
+};
+use futures::future::LocalBoxFuture;
+
+// There are two steps in middleware processing.
+// 1. Middleware initialization, middleware factory gets called with
+//    next service in chain as parameter.
+// 2. Middleware's call method gets called with normal request.
+pub struct Auth;
+
+// Middleware factory is `Transform` trait
+// `S` - type of the next service
+// `B` - type of response's body
+impl<S, B> Transform<S, ServiceRequest> for Auth
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type InitError = ();
+    type Transform = AuthMiddleware<S>;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(AuthMiddleware { service }))
+    }
 }
 
-#[derive(Serialize, Deserialize)]
-struct Claims {
-    id: usize,
-    exp: usize,
+pub struct AuthMiddleware<S> {
+    service: S,
 }
 
-impl FromRequest for AuthenticationToken {
-    type Error = ActixWebError;
-    type Future = Ready<Result<Self, Self::Error>>;
+impl<S, B> Service<ServiceRequest> for AuthMiddleware<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
-    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
-        // get auth token from authorization header
-        let auth_header: Option<&header::HeaderValue> = req.headers().get(header::AUTHORIZATION);
-        let auth_token: &str = auth_header.unwrap().to_str().unwrap_or("");
-        if auth_token.is_empty() {
-            return ready(Err(ErrorUnauthorized("Invalid auth token!")));
-        }
+    forward_ready!(service);
 
-        let secret: String = req.app_data::<web::Data<String>>().unwrap().to_string();
-        // decode the token with secret
-        let decode: Result<TokenData<Claims>, JwtError> = decode::<Claims>(
-            &auth_token,
-            &DecodingKey::from_secret(secret.as_bytes()),
-            &Validation::new(Algorithm::HS256),
-        );
-        // return authentication token
-        match decode {
-            Ok(token) => ready(Ok(AuthenticationToken {
-                id: token.claims.id,
-            })),
-            Err(_) => ready(Err(ErrorUnauthorized("Unauthorized"))),
-        }
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+        println!("Hi from start. You requested: {}", req.path());
+
+        let fut = self.service.call(req);
+
+        Box::pin(async move {
+            let res = fut.await?;
+
+            println!("Hi from response");
+            Ok(res)
+        })
     }
 }

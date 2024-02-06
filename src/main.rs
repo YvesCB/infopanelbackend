@@ -13,6 +13,7 @@ use api::event::{
 };
 use api::test::test_header;
 use api::user::{show_users, user_detail};
+use model::auth::Auth;
 use util::*;
 
 #[actix_web::main]
@@ -59,6 +60,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(
                 web::scope("api/events")
+                    .wrap(Auth)
                     .service(show_events)
                     .service(filter)
                     .service(filter_by_time)
