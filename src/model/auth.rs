@@ -2,6 +2,7 @@ use std::future::{ready, Ready};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    error::ErrorUnauthorized,
     Error,
 };
 use futures::future::LocalBoxFuture;
@@ -57,7 +58,7 @@ where
             let res = fut.await?;
 
             println!("Hi from response");
-            Ok(res)
+            Err(ErrorUnauthorized("not authorized"))
         })
     }
 }
