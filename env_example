@@ -1,0 +1,5 @@
+REFRESH_TIME="10:00"
+JWKS_URL="https://login.microsoftonline.com/<tennant-id>/discovery/keys?appid=<client-id>"
+JWT_AUD="api://<tennant-id>"
+SURREAL_INFO_USER="user"
+SURREAL_INFO_PASS="pass"

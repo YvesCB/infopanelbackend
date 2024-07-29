@@ -76,7 +76,7 @@ async fn main() -> std::io::Result<()> {
             )
             .service(web::scope("api/test").service(test_header))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("localhost", 8080))?
     .run()
     .await
 }

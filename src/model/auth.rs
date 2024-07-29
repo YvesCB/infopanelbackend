@@ -7,6 +7,8 @@ use actix_web::{
 };
 use futures::future::LocalBoxFuture;
 
+use crate::util::jwt_validation::validate;
+
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
 //    next service in chain as parameter.
@@ -51,14 +53,28 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         println!("Hi from start. You requested: {}", req.path());
+        let auth_header = req.headers().get("Authorization");
+        let auth_token = match auth_header {
+            Some(h) => Some(h.to_str().unwrap().split_once(' ').unwrap().1.to_string()),
+            None => None,
+        };
 
         let fut = self.service.call(req);
 
         Box::pin(async move {
             let res = fut.await?;
 
-            println!("Hi from response");
-            Err(ErrorUnauthorized("not authorized"))
+            match auth_token {
+                Some(token) => match validate(&token).await {
+                    Ok(response) => {
+                        println!("Validated token: {:?}", response);
+
+                        Ok(res)
+                    }
+                    Err(e) => Err(ErrorUnauthorized(e)),
+                },
+                None => Err(ErrorUnauthorized("No Authorization header found.")),
+            }
         })
     }
 }
