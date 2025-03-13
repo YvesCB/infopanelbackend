@@ -2,12 +2,15 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::Json;
+use log::error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("database error")]
     Db,
+    #[error("invalid data")]
+    InvalidData,
 }
 
 impl IntoResponse for Error {
@@ -18,7 +21,7 @@ impl IntoResponse for Error {
 
 impl From<surrealdb::Error> for Error {
     fn from(error: surrealdb::Error) -> Self {
-        eprintln!("{error}");
+        error!("{error}");
         Self::Db
     }
 }
