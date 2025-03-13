@@ -2,6 +2,8 @@ use axum::{routing::get, Router};
 
 mod controller;
 mod error;
+mod model;
+mod repository;
 
 use controller::{events, rooms, users};
 use log::{info, warn};
