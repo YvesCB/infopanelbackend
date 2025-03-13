@@ -1,9 +1,9 @@
 appenders:
-  my_stdout:
+  stdout:
     kind: console
     encoder:
       pattern: "{h({d(%Y-%m-%d %H:%M:%S)(utc)} - {l}: {m}{n})}"
-  my_file_logger:
+  file_logger:
     kind: rolling_file
     path: "log/infopanel.log"
     encoder:
@@ -17,5 +17,5 @@ appenders:
 root:
   level: info
   appenders:
-    - my_stdout
-    - my_file_logger
+    - stdout
+    - file_logger

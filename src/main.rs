@@ -1,25 +1,29 @@
 use axum::{routing::get, Router};
 
 mod controller;
-use controller::events;
+mod error;
+
+use controller::{events, rooms, users};
+use log::{info, warn};
 
 #[tokio::main]
 async fn main() {
+    log4rs::init_file("log_config.yml", Default::default()).unwrap();
+
+    let room_routes = Router::new()
+        .route("/", get(rooms::get).post(rooms::post))
+        .route("/{id}", get(rooms::get_by_id).delete(rooms::delete));
+
     let event_routes = Router::new()
         .route("/", get(events::get).post(events::post))
         .route("/{id}", get(events::get_by_id).delete(events::delete));
 
     let user_routes = Router::new()
-        .route(
-            "/",
-            get(|| async { "get users" }).post(|| async { "post user" }),
-        )
-        .route(
-            "/{id}",
-            get(|| async { "get user by id" }).delete(|| async { "delete user by id" }),
-        );
+        .route("/", get(users::get).post(users::post))
+        .route("/{id}", get(users::get_by_id).delete(users::delete));
 
     let api_routes = Router::new()
+        .nest("/rooms", room_routes)
         .nest("/events", event_routes)
         .nest("/users", user_routes);
 
@@ -28,5 +32,6 @@ async fn main() {
     let address = "127.0.0.1:8088";
     let listener = tokio::net::TcpListener::bind(address).await.unwrap();
 
+    info!("Starting server on {address}");
     axum::serve(listener, app).await.unwrap();
 }
