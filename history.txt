@@ -1,0 +1,4 @@
+#V2
+CREATE room SET location="ls 102", roomname="402", capacity=24;
+CREATE event SET name="test", room=room:dwp0sne5e908sjcav58q, teacher="Hans muster";
+SELECT *, room.* FROM event FETCH room;

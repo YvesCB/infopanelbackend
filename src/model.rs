@@ -14,8 +14,8 @@ const DBNS: &str = "juventus";
 const DBNAME: &str = "infopanel";
 
 // -- Tables
-const EVENTS: &str = "events";
-const ROOMS: &str = "rooms";
+const EVENTS: &str = "event";
+const ROOMS: &str = "room";
 
 pub async fn init_surreal() -> Result<Surreal<Client>> {
     let db = Surreal::new::<Ws>("localhost:8000").await?;

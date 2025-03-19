@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use surrealdb::{engine::remote::ws::Client, RecordId, Surreal};
 
@@ -13,9 +13,9 @@ pub struct Room {
     pub roomname: String,
     pub capacity: u32,
     pub createdby: Option<String>,
-    pub createdat: Option<NaiveDateTime>,
+    pub createdat: Option<DateTime<Utc>>,
     pub editedby: Option<String>,
-    pub editedat: Option<NaiveDateTime>,
+    pub editedat: Option<DateTime<Utc>>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -24,9 +24,9 @@ pub struct RoomForCreate {
     pub roomname: String,
     pub capacity: u32,
     pub createdby: Option<String>,
-    pub createdat: Option<NaiveDateTime>,
+    pub createdat: Option<DateTime<Utc>>,
     pub editedby: Option<String>,
-    pub editedat: Option<NaiveDateTime>,
+    pub editedat: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone)]
@@ -47,7 +47,7 @@ impl RoomModelController {
 impl RoomModelController {
     pub async fn create(&self, mut room_fc: RoomForCreate, user: String) -> Result<Room> {
         room_fc.createdby = Some(user.clone());
-        room_fc.createdat = Some(Utc::now().naive_local());
+        room_fc.createdat = Some(Utc::now());
         let cr_room: Option<Room> = self
             .event_store
             .create(super::ROOMS)

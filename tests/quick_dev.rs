@@ -16,27 +16,27 @@ async fn quick_dev() -> Result<()> {
     );
     req_login.await?.print().await?;
 
-    let req_create_room = hc.do_post(
-        "/api/rooms",
-        json!({
-            "location": "Other Location",
-            "roomname": "Room 201",
-            "capacity": 25,
-        }),
-    );
-    req_create_room.await?.print().await?;
+    //let req_create_room = hc.do_post(
+    //    "/api/rooms",
+    //    json!({
+    //        "location": "Other Location",
+    //        "roomname": "Room 201",
+    //        "capacity": 25,
+    //    }),
+    //);
+    //req_create_room.await?.print().await?;
 
     let req_create_event = hc.do_post(
         "/api/events",
         json!({
             "pxid": 123,
-            "start": "2025-03-18T18:37:41",
-            "end": "2025-03-18T19:37:41",
+            "start": "2025-03-18T18:37:41Z",
+            "end": "2025-03-18T19:37:41Z",
             "department": "JME",
             "classname": "ABC",
             "subject": "TEST",
             "teacher": "Max Muster",
-            "room": "rooms:d4my4knnu9z506tivir8",
+            "room": "room:83djhfx6xlmshj3ykxta",
             "visible": true,
         }),
     );
