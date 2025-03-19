@@ -1,25 +1,24 @@
 [package]
-name = "infopanel"
+name = "infopanelback"
 version = "0.2.0"
 edition = "2021"
-authors = ["Yves Bruckmayer <y.bruckmayer@gmail.com>"]
-license = "MIT"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_with = "2"
+axum = "0.8"
+tower-http = { version = "0.6", features = ["fs"] }
+tower-cookies = "0.11"
+lazy-regex = "2"
+strum_macros = "0.27"
+uuid = { version = "1", features = ["v4", "fast-rng"] }
 surrealdb = "2.0.4"
-thiserror = "1.0.64"
-dotenv = "0.15.0"
 log = "0.4.20"
 log4rs = "1.2.0"
-serde = { version = "1.0.192", features = ["derive"] }
-serde_json = "1.0.108"
-tokio = { version = "1.29.1", features = ["full", "macros", "rt-multi-thread", "time"] }
-chrono = "0.4.31"
-encoding_rs = "0.8.33"
-uuid = { version = "1.6.0", features = ["v4"] }
-jsonwebtoken = "9.1.0"
-reqwest = { version = "0.12.5", features = ["json"] }
-axum = "0.8.1"
-http = "1.2.0"
+chrono = "0.4"
+
+[dev-dependencies]
+anyhow = "1"
+httpc-test = "0.1"
